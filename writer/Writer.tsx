@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Button, ScrollView, Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Button, Image, ScrollView, Text, View } from "react-native";
 import { z } from "zod";
 import { writeNdef } from "../util/nfc-io";
+import { useQuery } from "react-query";
+import { AntDesign } from "@expo/vector-icons";
 
 
 export const ticketSchema = z.object({
@@ -13,46 +15,27 @@ export default function Writer() {
 
     const url = "https://nfc-ticket-one.vercel.app/api/ticketProduced"
 
-    const [tickets, setTickets] = useState<z.infer<typeof ticketSchema>[]>()
-    const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState("")
     const [currentTicket, setCurrentTicket] = useState<z.infer<typeof ticketSchema>>()
+    const [tickets, setTickets] = useState<z.infer<typeof ticketSchema>[]>([])
 
-    useEffect(() => {
-        async function getUnproducedTickets() {
-            try {
-                setLoading(true)
-                const res = await fetch(url, {
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ API_KEY: "421c76d77563afa1914846b010bd164f395bd34c2102e5e99e0cb9cf173c1d87" }),
-                    method: 'POST'
-                })
+    const { data, isLoading, error } = useQuery(url, async () => {
+        const res = await fetch(url, {
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ API_KEY: "421c76d77563afa1914846b010bd164f395bd34c2102e5e99e0cb9cf173c1d87" }),
+            method: 'POST'
+        })
+        const data = await res.json()
+        if (!validateTickets(data)) throw new Error("Invalid response from server")
+        setTickets(data)
+        return data
+    })
 
-
-                const data = await res.json()
-
-                if (validateTickets(data)) {
-                    setTickets(data)
-                    console.log("Found tickets", data.length)
-                } else {
-                    Alert.alert("Error", "Invalid response from server")
-                }
-                setLoading(false)
-            } catch (error) {
-                console.error(error)
-            }
-        }
-
-        getUnproducedTickets()
-
-    }, [])
-
-
-    if (loading) return <ActivityIndicator />
-
-    if (!tickets || !tickets.length) return <Text>No Tickets to be generated</Text>
+    if (isLoading) return <ActivityIndicator />
+    if (!data || !data.length) return <Text>No Tickets found to generate.</Text>
+    if (error) return <Text>{JSON.stringify(error)}</Text>
 
     async function handleWrite({ id, eventId }: z.infer<typeof ticketSchema>) {
 
@@ -60,7 +43,7 @@ export default function Writer() {
 
         const success = await writeNFC({ id, eventId })
         if (success) {
-            setMessage("Ticket written")
+            setMessage("Ticket written") 
             updateTicketProduced({ id, eventId })
             setTickets(tickets!.filter((ticket) => ticket.id !== id))
         } else {
@@ -70,28 +53,56 @@ export default function Writer() {
 
     }
 
+    function cancelWrite() {
+        setCurrentTicket(undefined)
+    }
+
     return (
-        <View>
-            <Text>Total Tickets to generate: {tickets.length}</Text>
+        <View style={{ height: "100%", padding: 6, display: "flex", alignItems: "center" }}>
+            <Text>Tickets to generate: {tickets.length}</Text>
             <Text>{message}</Text>
-            <ScrollView>
+            <WritingDisplay ticket={currentTicket} cancelWrite={cancelWrite} />
+            <View style={{
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-around",
+                height: "100%",
+                flexGrow: 1,
+                gap: 5,
+            }}>
 
                 {
                     tickets.slice(0, 5).map((ticket) => {
 
                         return <View key={ticket.id} style={{ marginBottom: 5 }} >
-                            {ticket.id === currentTicket?.id ?
-                                <Button disabled={true} title={"Writing " + ticket.id.slice(0, 5) + "..."} /> :
-                                <Button onPress={() => handleWrite({ ...ticket })} title={ticket.id.slice(0, 5) + "..."} />
+                            {
+                                ticket.id === currentTicket?.id ?
+                                    <Button disabled={ticket.id === currentTicket?.id} title={ticket.id.slice(0, 5)} /> :
+                                    <Button onPress={() => handleWrite({ ...ticket })} title={ticket.id.slice(0, 5)} />
                             }
                         </View>
                     })
                 }
-            </ScrollView>
+            </View>
+
+
         </View>
     )
 }
 
+function WritingDisplay({ ticket, cancelWrite }: { ticket?: z.infer<typeof ticketSchema>, cancelWrite: () => void }) {
+    if (!ticket) return <Text>What Ticket do you want to write?</Text>
+    return (
+        <View style={{
+            display: "flex",
+            alignItems: "center",
+        }}>
+            <AntDesign name="scan1" size={56} color="black" />
+            <Text>Writing {ticket.id.slice(0, 5)}</Text>
+            <Button title="Cancel" onPress={cancelWrite} color="#dc2626" />
+        </View>
+    )
+}
 
 function validateTickets(tickets: any): tickets is z.infer<typeof ticketSchema>[] {
     const responseSchema = z.array(ticketSchema)

@@ -1,13 +1,11 @@
-import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Button, StyleSheet, Text, TextInput, TouchableOpacity, View, useWindowDimensions } from 'react-native';
-import { AntDesign } from '@expo/vector-icons';
-import { Entypo } from '@expo/vector-icons';
-import NfcManager, { Ndef, NdefRecord, NfcTech } from 'react-native-nfc-manager';
-import { getContainerStyles } from './scanner/dynamic-styles';
+import { useWindowDimensions } from 'react-native';
+import NfcManager, { } from 'react-native-nfc-manager';
 import Scanner from './scanner/Scanner';
 import { SceneMap, TabView } from 'react-native-tab-view';
 import Writer from './writer/Writer';
+import { QueryClient, QueryClientProvider } from 'react-query';
+
 
 export type TicketStatus = "valid" | "invalid" | "already used" | "loading" | ""
 
@@ -44,12 +42,15 @@ export default function App() {
   ])
 
   NfcManager.start();
+  const queryClient = new QueryClient()
 
   return (
-    <TabView
-      navigationState={{ index, routes }}
-      renderScene={renderScene}
-      onIndexChange={setIndex}
-      initialLayout={{ width: layout.width }} />
+    <QueryClientProvider client={queryClient}>
+      <TabView
+        navigationState={{ index, routes }}
+        renderScene={renderScene}
+        onIndexChange={setIndex}
+        initialLayout={{ width: layout.width }} />
+    </QueryClientProvider>
   )
 }

@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Alert, Button, TouchableOpacity, View } from 'react-native';
-import NfcManager, { Ndef, NdefRecord, NfcTech } from 'react-native-nfc-manager';
+import { Alert, Button, View } from 'react-native';
 import { getContainerStyles } from './dynamic-styles';
 import { ticketSchema } from '../writer/Writer'
 import { z } from 'zod';
@@ -84,9 +83,10 @@ export default function Scanner() {
 
     }
 
+
     return (
         <View style={getContainerStyles(ticketStatus)}>
-            <Button title="Start Scanning..." onPress={handleScan} />
+            {ticketStatus === "" && <Button title="Scan" onPress={handleScan} />}
             <DisplayTicketStatus ticketStatus={ticketStatus} name={name} />
         </View>
     );
