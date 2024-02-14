@@ -61,7 +61,10 @@ export default function Scanner() {
     }
 
     async function handleScan() {
-        const message = await readNdef()
+
+        const message = await readNdef().catch(
+            () => Alert.alert("Failed to read ticket")
+        )
         if (!message) {
             return console.error("No message found")
         }
@@ -71,7 +74,13 @@ export default function Scanner() {
             return Alert.alert("Failed to read ticket")
         }
 
-        const ticketStatus = await getTicketStatus(ticket)
+        const ticketStatus = await getTicketStatus(ticket).catch(
+            () => Alert.alert("Failed to get ticket status")
+        )
+        
+        if (!ticketStatus) {
+            return console.error("No ticket status found")
+        }
 
         displayTicketStatus(ticketStatus)
 
@@ -80,6 +89,7 @@ export default function Scanner() {
             setTicketStatus("")
             setName("")
         }, 3000)
+
 
     }
 

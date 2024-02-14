@@ -18,8 +18,6 @@ export function DisplayTicketStatus({ ticketStatus, name }: { ticketStatus: Tick
     if (ticketStatus === "invalid") {
         return (
             <View style={{ display: "flex", alignItems: "center" }}>
-
-                // Rest of the code...
                 <Entypo name="circle-with-cross" size={56} color="white" />
                 <Text>Invalid Ticket</Text>
             </View>
